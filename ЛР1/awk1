@@ -1,0 +1,7 @@
+BEGIN{
+FS="_"
+}
+{
+if ($1==str)
+	print $2
+}

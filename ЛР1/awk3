@@ -1,0 +1,10 @@
+BEGIN {
+avg=0
+}
+{
+avg+=$2
+}
+END {
+avg/=NR
+print "Среднее время по ",FILENAME,"-",avg
+}

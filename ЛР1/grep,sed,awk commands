@@ -1,0 +1,12 @@
+   1.1  cat FIO.txt | grep -E -i 'Иннокентий|Харитон'
+   1.2  cat FIO.txt | grep -iv '^[ыуяаеиоэю]'
+   1.3  cat FIO.txt | grep -E -i '^[яыуаеоиэю]{3,}'
+   1.4  cat FIO.txt | sort | tail -1
+   2.1  cat streets.txt | sed '/^[яыуеаоиэюЯЫУЕАИОЭЮ]\{3\}/!d'
+   2.2  cat streets.txt | sed 's/ская/***/g'
+   2.3  cat streets.txt | sed '/ская/a^^^'
+   2.4  cat streets.txt | sed 'y/абвгде/бвгдеё/'
+   3.1  ls . | awk -f ../awk1 -v str="бег 400м"
+   3.2  ls . | awk -f ../awk2 -v str="15.05.2015"
+   3.3  for f in *; do awk -f ../awk3 "$f" ; done
+   3.4  for f in *; do awk -f ../awk4 "$f" ; done
