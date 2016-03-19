@@ -11,21 +11,27 @@ do
 	done
 	let start=$start-$user
 	echo "Осталось $start палочек"	
-	if [ "$start" -le 5 -a "$start" -ge 0 ]
-	then
-		echo "Вы проиграли"
-		break
-	elif [ "$start" -eq 1 ]
+	if [ "$start" -eq 1 ]
 	then
 		echo "Вы выиграли"
- 		break
-	fi
-	comp=$(($RANDOM%4+1))
-	let start=$start-$comp
-	echo "Ход компьютера - $comp палочек"
-	echo "Осталось $start палочек"	
-	if [ "$start" = 1 ] ;	then
+ 		break		
+	elif [ "$start" -le 5 -a "$start" -ge 0 ]
+	then
+		if [ "$start" -gt 0 ]
+		then
+			echo "Ход компьютера - " $(($start-1)) " палочек"
+		fi
 		echo "Вы проиграли"
 		break
+	else 
+		comp=$(($RANDOM%4+1))
+		let start=$start-$comp
+		echo "Ход компьютера - $comp палочек"
+		echo "Осталось $start палочек"	
+		if [ "$start" = 1 ] ;	then
+			echo "Вы проиграли"
+			break
+		fi
 	fi
+	
 done
