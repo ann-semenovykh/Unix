@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -6,145 +5,34 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/shm.h>
+#include <string.h>
 
-/*int main () {
-	
-	int id;
-
-	//Уникальный ключ
-	int key = ftok(".",'m');
-	key = 12345;
-
-	//Создаем новое множество семафоров
-	id = semget(key, 1, 0666 | IPC_CREAT);
-
-	// Стурктура описывает конкретный семафор и операцию над ним.
-	struct sembuf sem_lock;
-	sem_lock.sem_num = 0;
-	sem_lock.sem_op = -1;
-	sem_lock.sem_flg = IPC_NOWAIT;
-
-	semop(id, &sem_lock, 1);
-	
-	semctl(id, IPC_RMID, 0);
-
-	return 0;
-}*/
-
-void read_from_file(char *in,int *N,int **matrix,int *vector)
+const int N=100;
+void main(int argc,char *argv[])
 {
-	FILE *input;
+	FILE *f;
+	f=fopen("100by100.txt","w");
 	int i,j;
-	
-	if ((input=fopen(in,"r"))==NULL)
+	int matrix[N][N];
+	int vect[N];
+	int res[N];
+	for (i=0;i<N+1;i++)
 	{
-		printf("Error in the input file\n");
-		exit(-1);
+		for (j=0;j<N;j++) 
+		if(i!=N)
+			{matrix[i][j]=random()%10;
+fprintf(f,"%d\t",matrix[i][j]);}
+		else
+{vect[j]=random()%10;
+fprintf(f,"%d\t",vect[j]);}
+		fprintf(f,"\n");
 	}
-	fscanf(input,"%d",N);
-	matrix=(int**)malloc(sizeof(int*)*(*N));
-	vector=(int*)malloc(sizeof(int)*(*N));
-	for (i=0;i<(*N);i++)
-	{
-		matrix[i]=(int*)malloc(sizeof(int)*(*N));
-		for (j=0;j<(*N);j++)
-			fscanf(input,"%d",&matrix[i][j]);
-	}
-	for (i=0;i<(*N);i++)
-		fscanf(input,"%d",&vector[i]);
-	fclose(input);
-}
-void write_to_file(char *out,int N,int* res)
-{
-	int i;
-	FILE *output;
-	output=fopen(out,"w");
 	for (i=0;i<N;i++)
-		fprintf(output,"%d ",res[i]);
-	fclose(output);
-}
-void del_all(int N,int **matrix,int *vector)
-{
-	int i;
-	for (i=0;i<N;i++)
-		free(matrix[i]);
-	free(matrix);
-	free(vector);
-}
-void main(int argc, char *argv[])
-{
-	int shmid, status;
-	int **matrix;
-	int *vect;
-	int N;
-	int *result;
-	if (argv[1]==NULL || argv[2]== NULL)
-	{
-		printf("In/Out files are unknown\n");
-		exit(-1);
-	}
-FILE *input;
-	int i,j;
-	
-	if ((input=fopen(argv[1],"r"))==NULL)
-	{
-		printf("Error in the input file\n");
-		exit(-1);
-	}
-	fscanf(input,"%d",&N);
-	matrix=(int**)malloc(sizeof(int*)*(N));
-	vect=(int*)malloc(sizeof(int)*(N));
-	for (i=0;i<(N);i++)
-	{
-		matrix[i]=(int*)malloc(sizeof(int)*(N));
-		for (j=0;j<(N);j++)
-			fscanf(input,"%d",&matrix[i][j]);
-	}
-	for (i=0;i<(N);i++)
-		fscanf(input,"%d",&vect[i]);
-	fclose(input);
-	//read_from_file(argv[1],&N,matrix,vect);
-	
-	pid_t pid;
-	key_t key;
-	key=ftok(".",0);
-	shmid = shmget(key,N*sizeof(int),IPC_CREAT|0666);
-	result = (int *) shmat(shmid, NULL, 0);
-	for (i=0;i<N;i++)
-	if ((pid = fork()) == 0) {
-		int tmp=0;
+		{long tmp=0;
 		for (j=0;j<N;j++)
-		tmp+=matrix[i][j]*vect[j];
-		result[i]=tmp;
-		//Child(i,N,matrix[i],vect,result);
-		exit(0);
+			tmp+=matrix[i][j]*vect[j];
+		res[i]=tmp;
+		fprintf(f,"%d\t",res[i]);
 	}
-	wait(&status);
-	
-	//write_to_file(argv[2],N,result);
-	printf("ok1");
-	FILE *output;
-	output=fopen(argv[2],"w");
-	for (i=0;i<N;i++)
-		fprintf(output,"%d ",result[i]);
-	fclose(output);
-	printf("ok2");
-	//del_all(N,matrix,vect);
-	for (i=0;i<N;i++)
-		free(matrix[i]);
-	free(matrix);
-	free(vect);
-
-	shmdt((void *) result); 
-	shmctl(shmid, IPC_RMID, NULL);
-	printf("ok3");
-	exit(0);
-}
-void Child(int rownum,int N,int *row,int *vec,int result[])
-{
-	int tmp=0;
-	int i;
-	for (i=0;i<N;i++)
-		tmp=row[i]*vec[i];
-	result[rownum]=tmp;
+	fclose(f);
 }

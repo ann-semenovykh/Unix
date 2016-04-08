@@ -25,10 +25,10 @@ void read_from_file(char *in,int *N,int **matrix,int *vector)
 	{
 		matrix[i]=(int*)malloc(sizeof(int)*(*N));
 		for (j=0;j<(*N);j++)
-			fscanf(input,"%d",&matrix[i][j]);
+			fscanf(input,"%d\t",&matrix[i][j]);
 	}
 	for (i=0;i<(*N);i++)
-		fscanf(input,"%d",&vector[i]);
+		fscanf(input,"%d\t",&vector[i]);
 	fclose(input);
 }
 void write_to_file(char *out,int N,int* res)
@@ -37,7 +37,7 @@ void write_to_file(char *out,int N,int* res)
 	FILE *output;
 	output=fopen(out,"w");
 	for (i=0;i<N;i++)
-		fprintf(output,"%d ",res[i]);
+		fprintf(output,"%d\t",res[i]);
 	fclose(output);
 }
 void del_all(int N,int **matrix,int *vector)
@@ -79,16 +79,20 @@ void main(int argc, char *argv[])
 	vect=(int*)malloc(sizeof(int)*(N));
 	for (i=0;i<N;i++)
 	{
-		matrix[i]=(int*)malloc(sizeof(int)*(N));
-		for (j=0;j<(N);j++)
-			fscanf(input,"%d",&matrix[i][j]);
+		matrix[i]=(int*)malloc(sizeof(int)*N);
+		for (j=0;j<N;j++)
+			{fscanf(input,"%d",&matrix[i][j]);
+			//printf("%d ",matrix[i][j]);
+			}
+		//printf("\n");
 	}
 	for (i=0;i<N;i++)
-		fscanf(input,"%d",&vect[i]);
+		{fscanf(input,"%d",&vect[i]);
+		//printf("%d ",vect[i]);
+		}
 	fclose(input);
 	//read_from_file(argv[1],&N,matrix,vect);
-	for (i=0;i<N;i++)
-		printf("%d ",vect[i]);
+	
 	pid_t pid;
 	key_t key;
 
@@ -110,32 +114,25 @@ void main(int argc, char *argv[])
 			{
 				int tmp=0;
 				for (j=0;j<N;j++)
-					{tmp+=matrix[i][j]*vect[j];
-				//printf("%d %d\n",matrix[i][j],vect[j]);
-				}
-				
-				//printf("%d\n",tmp);
+					tmp+=matrix[i][j]*vect[j];
 				result[i]=tmp;
-				//Child(i,N,matrix[i],vect,result);	
-			}
+				}
 			exit(0);
 		}
-		waitpid(pid,&status,0);
 
 		currow+=step;
-		//printf("%d %d\n",currow,step);
-		
-
+		//printf("\n%d %d %d",currow,step,k);
+	
 	}
+	for (k=1;k<=procs;k++)
+		waitpid(-1,&status,0);
 	
 	//write_to_file(argv[2],N,result);
-	printf("ok1");
 	FILE *output;
 	output=fopen(argv[2],"w");
 	for (i=0;i<N;i++)
-		fprintf(output,"%d ",result[i]);
+		fprintf(output,"%d\t",result[i]);
 	fclose(output);
-	printf("ok2");
 	//del_all(N,matrix,vect);
 	for (i=0;i<N;i++)
 		free(matrix[i]);
@@ -144,7 +141,6 @@ void main(int argc, char *argv[])
 
 	shmdt((void *) result); 
 	shmctl(shmid, IPC_RMID, NULL);
-	printf("ok3");
 	exit(0);
 }
 void Child(int rownum,int N,int *row,int *vec,int result[])

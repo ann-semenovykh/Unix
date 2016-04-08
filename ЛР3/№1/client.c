@@ -7,87 +7,104 @@
 #include <string.h>
 #include <signal.h>
 
-#define MAX_SEND_SIZE 100
+#define MAX_SEND_SIZE 10
+#define MAX_NAME_LENGTH 7
+#define ESC_CODE 27
 
-struct msgbuf{
+
+int client_type;
+
+struct msgbuf {
 	long mtype;
-	char mtext[MAX_SEND_SIZE];
+	char mtext[MAX_SEND_SIZE+MAX_NAME_LENGTH];
 };
-int msgqueue_id;
-const int ESC_CODE=27;
-const int RETURN_CODE=10;
 
-void read_message(int gid,struct msgbuf *bufs,long type)
+void send_message(int qid, struct msgbuf *qbuf, long type, char *text)
 {
-	bufs->mtype=0;
-	msgrcv(gid,(struct msgbuf *)bufs,MAX_SEND_SIZE,0,0);
-	printf("%s",bufs->mtext);
-}
-void send_message(int gid,struct msgbuf *bufs,long type,char *text)
-{
-	bufs->mtype=type;
-	
-	strcpy(bufs->mtext,text);
-	printf("%s\n",bufs->mtext);
-	//printf("%s\n%ld\n%d\n",bufs->mtext,bufs->mtype,gid);
-	if (msgsnd(gid,(struct msgbuf *)bufs,strlen(text)+1,0)==-1){
-		printf("Message send error\n");
-		exit(-1);
+	qbuf->mtype = type;
+	strcpy(qbuf->mtext, text);
+	//printf("Send %s\n",qbuf->mtext);
+	if ((msgsnd(qid, (struct msgbuf *) qbuf, strlen(qbuf->mtext) + 1, 0)) == -1) 
+	{
+		perror("msgsnd");
+		exit(1);
 	}
 }
-int main (int argc,char *argv[]){
+
+void read_message(int qid, struct msgbuf *qbuf, long type, int flag) 
+{
+	qbuf->mtype = type;
+	msgrcv(qid, (struct msgbuf *) qbuf, MAX_SEND_SIZE+MAX_NAME_LENGTH+2, type, flag);
+	//printf("Get %s\n",qbuf->mtext);
+}
+
+int main(int argc, char *argv[]) 
+{
 	key_t key;
-	struct msgbuf msg_snd, msg_rcv;
-	int main_id;
+	int msgqueue_id;
+	struct msgbuf qbuf,msg_snd;
+	pid_t pid;
+	/* Create unique key via call to ftok() */
+	key = 1234;
 
 	if (argv[1]==NULL){
-		printf("Error: Write down your login\n");
+		printf("Ошибка: введите свой логин\n");
 		exit(-1);
 	}
-	if (strlen(argv[1])>20)
+	if (strlen(argv[1])>MAX_NAME_LENGTH-2)
 	{
-		printf("Login is too long\n");
+		printf("Логин слишком длинный\n");
 		exit(-1);
 	}
-	key=ftok(".",getpid());
-	if ((msgqueue_id=msgget(key,IPC_CREAT|0666))==-1){
-		printf("Message queue creating error\n");
-		exit(-1);	
-	}
-	if ((main_id=msgget(1234,IPC_CREAT|0666))==-1){
+	char log_name[MAX_NAME_LENGTH+MAX_SEND_SIZE];
+	char name[MAX_NAME_LENGTH];
+	strcat(name,argv[1]);
+	strcat(name,": ");
+	strcpy(log_name,name);
+	if ((msgqueue_id=msgget(1234,IPC_CREAT|0666))==-1){
 		printf("Не удалось подключиться к серверу");
 		exit(-1);
 	}
-	int c;
-	int i=0;
-	char buf[MAX_SEND_SIZE];
-	snprintf(buf,MAX_SEND_SIZE,"%d",msgqueue_id);
-	printf("%s\n",buf);	
-	send_message(main_id,&msg_snd,1,buf);
-	printf("%s: ",argv[1]);
-	pid_t pid;
-	if (pid=fork())
-	while(1)
-	{
-		read_message(msgqueue_id,&msg_rcv,4);
-		printf("%s\n",msg_rcv.mtext);
-	}
-	while(c!=ESC_CODE)
-	{
-		c=getchar();
-		if (i<MAX_SEND_SIZE-20)
-			buf[i++]=c;
-		if (c=='\n'){
-			//Send a message
-			send_message(main_id,(struct msgbuf *) &msg_snd,2,buf);
-			i=0;
-			printf("%s: ",argv[1]);
+
+  	int c = 0;
+  	int i = 0;
+  	char tmp[MAX_SEND_SIZE+MAX_NAME_LENGTH];
+  	read_message(msgqueue_id, &qbuf, 1, 0);
+	client_type=atoi(qbuf.mtext);
+  	sprintf(tmp, "%d", client_type + 1);
+  	send_message(msgqueue_id, (struct msgbuf *) &qbuf, 1, tmp);
+
+  	char buf[MAX_SEND_SIZE];
+	if ((pid=fork()) == 0)
+		while(1)
+			{
+			struct msgbuf in;
+			read_message(msgqueue_id, &in, client_type, 0);			
+			printf("%s\n",in.mtext);
 		}
+	while (c != ESC_CODE) 
+	{
+		
+		c = getchar();
+		if (i < MAX_SEND_SIZE) 
+			buf[i++] = c; 
+		if (c == '\n') 
+		{
+			buf[i] = 0;
+			/*if (i>MAX_SEND_SIZE-MAX_NAME_LENGTH)
+				printf("Сообщение слишком длинное\n");
+			//Send a message*/
+			send_message(msgqueue_id,(struct msgbuf *) &msg_snd,2,strcat(log_name,buf));
+			i=0;
+			strcpy(log_name,name);
+			buf[i]=0;
+		}
+			
+		
 	}
 	kill(pid,SIGKILL);
-	snprintf(buf,MAX_SEND_SIZE,"%d",msgqueue_id);
-	send_message(main_id,&msg_snd,3,buf);
-	msgctl(msgqueue_id,IPC_RMID,0);
-	exit(0);	
+	//strcpy(tmp,"DELETE");
+	//send_message(msgqueue_id,(struct msgbuf *)&qbuf,3,tmp);
+	exit(0);
 }
 
